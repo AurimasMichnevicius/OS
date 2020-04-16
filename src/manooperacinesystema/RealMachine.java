@@ -17,7 +17,7 @@ public class RealMachine {
     private int IC;
     private byte PI;
     private byte SI;
-    private int R;
+    private int H;
     private byte C;
     private int IOL;
     private int TI;
@@ -55,5 +55,92 @@ public class RealMachine {
         return builder.toString();
     }
 */
-    
+    public void ADD()
+    {
+        
+    }
+    public void SUB()
+    {
+        
+    }
+    public void MUL()
+    {
+        
+    }
+    public void DIV()
+    {
+        
+    }
+    public void CMP()
+    {
+        
+    }
+    public void WB()
+    {
+        
+    }
+    public void RB()
+    {
+        
+    }
+    public void LC()
+    {
+    }
+    public void UC()
+    {
+        
+    }
+    public void JM()
+    {
+        
+    }
+    public void JE()
+    {
+        
+    } 
+    public void JL()
+    {
+        
+    }
+     public void JG()
+    {
+        
+    }
+     public void HW(int x)
+     {
+         
+     }
+     public void PUSH(int x)
+     {
+         
+     }
+     public int POP()
+     {
+         return 1;
+     }
+     public void PRTS()
+     {
+         
+     }
+     public void PRTN()
+     {
+         
+     }
+     public void PRT()
+     {
+     
+     }
+     public void SWP()
+     {
+     
+     }
+     public void RD()
+     {
+         
+     }
+     public void HALT()
+     {
+         
+     }
+     
 }
