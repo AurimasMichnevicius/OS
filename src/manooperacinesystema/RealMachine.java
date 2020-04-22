@@ -57,19 +57,19 @@ public class RealMachine {
 */
     public void ADD()
     {
-        
+        MEMORY[SI-1] = MEMORY[SI-1]+MEMORY[SI];
     }
     public void SUB()
     {
-        
+        MEMORY[SI-1] = MEMORY[SI]-MEMORY[SI-1];
     }
     public void MUL()
     {
-        
+        MEMORY[SI-1] = MEMORY[SI]*MEMORY[SI-1];
     }
     public void DIV()
     {
-        
+        MEMORY[SI-1] = MEMORY[SI]/MEMORY[SI-1];
     }
     public void CMP()
     {
