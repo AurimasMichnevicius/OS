@@ -9,7 +9,7 @@ package manooperacinesystema;
  *
  * @author User
  */
-public class ManoOperacineSystema {
+public class ManoOperacineSystema { // main class 
 
     /**
      * @param args the command line arguments

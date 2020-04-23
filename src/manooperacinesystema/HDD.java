@@ -9,7 +9,7 @@ public class HDD {
 
     private static final int SECTORS = 1000;
     private static final int WORDS_PER_SECTOR = 256;
-    private static final String EMPTY_SECTOR = "                ";
+    private static final String EMPTY_SECTOR = "                                                                                                                                                                                                                                                                ";
     public static ArrayList<Integer> usedSectors = new ArrayList<>();
     private static RandomAccessFile file;
 
