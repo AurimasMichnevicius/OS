@@ -34,6 +34,8 @@ public class RealMachine {
     public static final int ENTRIES_PER_PAGE_TABLE = PAGE_COUNT; 
     private static final int MEMORY_SIZE = PAGE_COUNT * PAGE_SIZE * MAX_VM_COUNT;
     private int[] MEMORY = new int[MEMORY_SIZE]; /// vidine atmintis
+    // daryti is char arba stringo po 4
+    // 
     
     private HashMap<Integer, Integer> allocatedMemory = new HashMap<>();
     // Physiscal įrenginiai
@@ -53,7 +55,15 @@ public class RealMachine {
         builder.append("------------------\n");
         return builder.toString();
     }
+    
 */
+    public void Push(int word) {
+    
+}
+    public int Pop(int word)
+    {
+     return MEMORY[1];
+    }
     public void test()
     {
         if (this.SI !=0) // checking SI

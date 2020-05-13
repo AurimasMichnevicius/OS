@@ -16,6 +16,9 @@ public class ManoOperacineSystema { // main class
      */
     public static void main(String[] args) {
         System.out.println("hello Wrold");
+        RealMachine rm = new RealMachine();
+        VirtualMachine vm = new VirtualMachine(rm);
+        vm.loadProgram("program.txt");
     }
     
 }
