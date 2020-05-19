@@ -9,16 +9,20 @@ package manooperacinesystema;
  *
  * @author User
  */
-public class ManoOperacineSystema { // main class 
 
+public class ManoOperacineSystema { // main class 
+ public static final boolean DEBUG = false;
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
-        System.out.println("hello Wrold");
+    public static void main(String[] args) throws Exception {
+        //System.out.println("hello Wrold");
         RealMachine rm = new RealMachine();
         VirtualMachine vm = new VirtualMachine(rm);
+        rm.createVirtualMemory();
         vm.loadProgram("program.txt");
-    }
-    
+        vm.runProgram();
+        //vm.printSTACK();
+        System.out.println(rm.toString());    
+}
 }

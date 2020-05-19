@@ -8,6 +8,9 @@ package manooperacinesystema;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Scanner;
+import sun.applet.Main;
 
 /**
  *
@@ -20,12 +23,14 @@ public class VirtualMachine {
     private static final int MEMORY_SIZE = PAGE_SIZE * PAGE_COUNT;
     private static final int DATA_SEGMENT_START = 0;
     private static final int CODE_SEGMENT_START = PAGE_SIZE * 4;
-    public static final int SHARED_MEMORY_SEGMENT = 0x0D;
+    public static final int SHARED_MEMORY_SEGMENT = 0xF0;
+    public static final int stack_start = 0x90;
     public static int printerPage;
+    private int SP = 0;
     private VirtualMachine shrVm;
     private RealMachine rm;
-       private static final int Data_segment_start = 0;
-        private static final int Code_segment_start = PAGE_SIZE * 16;
+    private static final int Data_segment_start = 0;
+    private static final int Code_segment_start = PAGE_SIZE * 0x40;
 
     private int[] MEMORY = new int[MEMORY_SIZE]; /// vidine atmintis
 
@@ -34,71 +39,388 @@ public class VirtualMachine {
     }
 
     public void loadProgram(String programName) {
-        try (BufferedReader br = new BufferedReader(new FileReader(programName))) {
-            String state = "START";
-            String currentLine= "";
-            int offset = 0;
-            while((currentLine = br.readLine() )!= null)
-            {
-                String[] split = currentLine.split(" ");
-               
-                currentLine = split[0];
-                 System.out.println(currentLine);
-                if(state.equals("START"))
-                {
-                    if(currentLine.equals("DATA"))
-                    {
-                      
-                        state = "DATA";
-                        offset = Data_segment_start;
-                        continue;
-                        
-                    }
-                
-                else
-                {
+        Scanner scanner = new Scanner(System.in);
+        String state = "START";
+        String currentLine = "";
+        int offset = 0;
+        while ((currentLine = scanner.nextLine()) != null) {
+            String[] split = currentLine.split(" ");
+
+            currentLine = split[0];
+            //System.out.println(currentLine);
+            if (state.equals("START")) {
+                if (currentLine.equals("DATA")) {
+
+                    state = "DATA";
+                    offset = Data_segment_start;
+                    continue;
+
+                } else {
                     System.err.println("Progam did not find Data segment");
                     return;
                 }
+            } else if (state.equals("DATA")) {
+                if (currentLine.equals("CODE")) {
+
+                    state = "CODE";
+                    offset = Code_segment_start;
+                } else if (currentLine.equals("DW")) {
+                    // System.out.println(currentLine);
+                    rm.writeWord(offset++, Integer.parseInt(split[1]));
                 }
-                else if(state.equals("DATA"))
-                {
-                    if(currentLine.equals("CODE"))
-                    {
-                    
-                        state= "CODE";
-                        offset = Code_segment_start;
-                    }
-                    else if(currentLine.equals("DW"))
-                    {
-                          System.out.println(currentLine);
-                        for (int i = 0; i < 1; i++){ // how many times i need to read before i am done.
-                        MEMORY[offset] = Integer.parseInt(split[i+1]);
-                        offset++;
-                        }
-                    }
-                
+
+            } else if (state.equals("CODE")) {
+
+                Instruction instr = Instruction.getInstructionByName(currentLine);
+                //  System.out.println(instr.getOpcode());
+                // so when i get operation i make it into code. so i can know what to execute.
+                rm.writeWord(offset++, instr.getOpcode());
+                for (int i = 0; i < instr.getArgCount(); i++) {
+                    //writeWord(offset++, Integer.parseInt(split[i+1]));
+                    rm.writeWord(offset++, Integer.parseInt(split[i + 1]));
                 }
-                else if(state.equals("CODE"))
-                {
-                    Instruction instr = 
-                    // so when i get operation i make it into code. so i can know what to execute.
-                    MEMORY[offset] = Integer.parseInt(split[1]);
+                if (currentLine.equals("HALT")) {
+                    return;
                 }
             }
 
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
         }
     }
 
-    public void printRegisters() {
+    public void runProgram() throws Exception {
+        rm.setIC(this.Code_segment_start);
+        try {
+            while (true) {
+                executeInstruction();
+                rm.test();
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        } catch (Exception e) {
+            if (e.getMessage().equals("HALT")) {
+                return;
+            } else {
+                throw e;
+            }
+        }
+    }
 
+    public void writeWord(int address, int word) {
+        if (address < 0 || address >= MEMORY_SIZE) {
+            return;
+        }
+        int page = address / PAGE_SIZE;
+        int offset = address - page * PAGE_SIZE;
+        writeWord(page, offset, word);
+    }
+
+    public void writeWord(int page, int offset, int word) {
+        if (page < 0 || page >= PAGE_COUNT || offset < 0 || offset >= PAGE_SIZE) {
+            return;
+        }
+        rm.setWord(page, offset, word);
+    }
+
+    public int readWord(int address) {
+        if (address < 0 || address >= MEMORY_SIZE) {
+            return -1;
+        }
+        int page = address / PAGE_SIZE;
+        int offset = address - page * PAGE_SIZE;
+        return rm.getWord(page, offset);
+    }
+
+    public int readWord(int page, int offset) {
+        return readWord(page * PAGE_SIZE + offset);
+    }
+
+    public void executeInstruction() throws Exception {
+        int op = readWord(rm.getIC());
+        if (ManoOperacineSystema.DEBUG) {
+            System.out.println("iveskite tuscia eilute jog ivykdytumet instruckija: " + Instruction.getCommandName(op));
+            System.out.println("rasykite help noredami gauti daugiau komandu");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            String input = reader.readLine();
+            System.out.println(input);
+
+            if (input.equals("help")) {
+                System.out.println("use <rm >to print Real Memory: usage rm <start> <end>"); // reiks pakeisti 
+                System.out.println("\t\t- rm 0 5");
+                System.out.println("use <vm> to print Virtual Memory: usage vm <start> <end>");
+                System.out.println("\t\t- vm 0 5");
+                System.out.println("use <print S> to see STack  state");
+                System.out.println("\n");
+                System.out.println("use <print vm> to see virtual machine state");
+                System.out.println("\n");
+                System.out.println("use <pt> to see page table");
+                System.out.println("\n");
+                return;
+            } else if (input.equals("print rm")) {
+                System.out.println(rm.toString());
+                return;
+            } else if (input.equals("print S")) {
+                printSTACK();
+                return;
+            } else if (input.equals("pt")) {
+                rm.printPageTable();
+                return;
+            } else if (input.contains("vm") || input.contains("rm")) {
+                try {
+                    String[] split = input.split(" ");
+                    if (split.length == 3) {
+                        int start = Integer.parseInt(split[1]);
+                        int end = Integer.parseInt(split[2]);
+                        if (input.contains("vm")) {
+                            rm.printVirtualMemory(start, end);
+                        } else if (input.contains("rm")) {
+                            rm.printRealMemory(start, end);
+                        }
+                        return;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+        rm.setIC(rm.getIC() + 1);
+        if (op == Instruction.ADD.getOpcode()) {
+            ADD();
+        } else if (op == Instruction.SUB.getOpcode()) {
+            SUB();
+        } else if (op == Instruction.MUL.getOpcode()) {
+            MUL();
+        } else if (op == Instruction.CMP.getOpcode()) {
+            CMP();
+        } else if (op == Instruction.DIV.getOpcode()) {
+            DIV();
+        } else if (op == Instruction.PUSH.getOpcode()) {
+            PUSH();
+        } else if (op == Instruction.POP.getOpcode()) {
+            System.out.println("STACK POPED: "+POP());
+        } else if (op == Instruction.JM.getOpcode()) {
+            JM();
+        } else if (op == Instruction.JE.getOpcode()) {
+            JE();
+        } else if (op == Instruction.JG.getOpcode()) {
+            JG();
+        
+        } else if (op == Instruction.JL.getOpcode()) {
+            JL();
+        }else if (op == Instruction.WRT.getOpcode()) {
+            WRT();
+        } else if (op == Instruction.READ.getOpcode()) {
+            READ();
+        } else if (op == Instruction.LC.getOpcode()) {
+            LC();
+        } else if (op == Instruction.UC.getOpcode()) {
+            UC();
+        } else if (op == Instruction.PRTS.getOpcode()) {
+            PRTS();
+        } else if (op == Instruction.PRTN.getOpcode()) {
+            PRTN();
+        } else if (op == Instruction.WB.getOpcode()) {
+            WB();
+        } else if (op == Instruction.RB.getOpcode()) {
+            RB();
+        } else if (op == Instruction.HALT.getOpcode()) {
+            HALT();
+        } else {
+            throw new Exception("Unrecognized instruction's opcode: " + op);
+        }
+        if (ManoOperacineSystema.DEBUG) {
+            System.out.println(rm.toString());
+        }
+    }
+
+    public void printSTACK() {
+        for (int i = 0; i < SP; i++) {
+            System.out.print("SP :" + i + "  VALUE:" + this.readWord(0x90, i + 1) + "||");
+        }
     }
 
     public void ADD() {
-        // imame realmachine adressa kuriso yra masina, tada paimama stecko virsune ir sudedame virsunes adresus.
-      //  rm.pop()
+        int i = (POP() + POP());
+        // System.out.println(i);
+        PUSH(i);
+        rm.setTI(rm.getTI() + 1);
+    } // veikia  // REIKIA PATIKRINTI AR NEPERSOKO PER TA RIBA
+
+    public void SUB() {
+
+        int kuri_minusuojame = POP();
+        int minusuojamas = POP();
+        System.out.println((minusuojamas - kuri_minusuojame));
+        PUSH((minusuojamas - kuri_minusuojame));
+        rm.setTI(rm.getTI() + 1);
+    }  // WORKS // REIKIA PATIKRINTI AR NEPERSOKO PER TA RIBA
+
+    public void MUL() {
+        PUSH(POP() * POP());
+        rm.setTI(rm.getTI() + 1);
+    } // REIKIA PATIKRINTI AR NEPERSOKO PER TA RIBA
+
+    public void DIV() {
+        int kuri_minusuojame = POP();
+        int minusuojamas = POP();
+        PUSH((minusuojamas / kuri_minusuojame));
+        rm.setTI(rm.getTI() + 1);
+    } // REIKIA PATIKRINTI AR NEPERSOKO PER TA RIBA
+
+    public void CMP() {
+        int lyginamasis = POP();
+        int kitasLyginamasis = POP();
+        if (kitasLyginamasis == lyginamasis) {
+            rm.setSF(1);
+        } else if (kitasLyginamasis < lyginamasis) {
+            rm.setSF(0);
+        } else if (kitasLyginamasis > lyginamasis) {
+            rm.setSF(2);
+        }
+        rm.setTI(rm.getTI() + 1);
+    } // VEIKIA.
+
+    public void PUSH(int i) {
+        //System.out.println(i+ " SP : "+ SP+1 );
+        SP++;
+        writeWord(0x90, SP, i);
+        rm.setTI(rm.getTI() + 1);
+
     }
 
+    public void PUSH() {
+        SP++;
+        writeWord(0x90, SP, readWord(rm.getIC()));
+        rm.setIC(rm.getIC() + 1);
+        rm.setTI(rm.getTI() + 1);
+
+    }
+
+    public int POP() {
+        SP--;
+        //System.out.println(SP +  "popas ");
+        return readWord(0x90, SP + 1);
+    }
+
+    public void JM() { // jump 
+        int x1 = readWord(rm.getIC());
+        rm.setIC(rm.getIC() + 1);
+        int x2 = readWord(rm.getIC());
+        rm.setIC(rm.getIC() + 1);
+        rm.setIC(PAGE_SIZE * x1 + x2);
+        rm.setTI(rm.getTI() + 1);
+    }
+
+    public void JE() { // jmp if equals
+        
+            int x1 = readWord(rm.getIC());
+            rm.setIC(rm.getIC() + 1);
+            int x2 = readWord(rm.getIC());
+            rm.setIC(rm.getIC() + 1);
+            if (rm.getSF() == 1) {
+            rm.setIC(PAGE_SIZE * x1 + x2);
+            
+        }
+            rm.setTI(rm.getTI() + 1);
+    }
+
+    public void JG() { // jump if greater
+        
+            int x1 = readWord(rm.getIC());
+            rm.setIC(rm.getIC() + 1);
+            int x2 = readWord(rm.getIC());
+            rm.setIC(rm.getIC() + 1);
+            if (rm.getSF() == 0) {
+            rm.setIC(PAGE_SIZE * x1 + x2);
+            
+        }
+            rm.setTI(rm.getTI() + 1);
+    }
+
+    public void JL() // jump lover
+    {
+        
+            int x1 = readWord(rm.getIC());
+            rm.setIC(rm.getIC() + 1);
+            int x2 = readWord(rm.getIC());
+            rm.setIC(rm.getIC() + 1);
+            if (rm.getSF() == 2) {
+            rm.setIC(PAGE_SIZE * x1 + x2);
+           
+        }
+             rm.setTI(rm.getTI() + 1);
+
+    }
+
+    public void WRT() { // dar nepadarytas 
+
+    }
+
+    public void READ() { // nepadaryti dar
+
+    }
+
+    public void LC() {
+        rm.setSI((byte)1);
+        shrVm = this;
+        rm.setTI(rm.getTI() + 1);
+
+    }
+
+    public void UC() {
+        rm.setSI((byte) 0);
+        shrVm = null;
+        rm.setTI(rm.getTI() + 3);
+    }
+
+    public void HALT() throws Exception { // done here .
+        rm.setSI((byte) 3);
+        rm.setTI(rm.getTI() + 1);
+        throw new Exception("HALT");
+    }
+
+    public void PRTS() {// reikia pakeist kad per supervizorine printintu
+        System.out.println((char) POP());
+    }
+
+    public void PRTN() {// reikia pakeist kad per sueprvizorine printintu
+        System.out.println(POP());
+    }
+
+    public void PRT() {// reikia padaryt kad per supervizorine printtu.
+        int x1 = readWord(rm.getIC());
+        rm.setIC(rm.getIC() + 1);
+        for(int i = 0 ; i <256 ; i ++)
+        {
+            System.out.print(readWord(x1*256 + i)+ " ");
+        }
+
+    }
+
+    public void WB() {
+        int x1 = readWord(rm.getIC());
+        rm.setIC(rm.getIC() + 1);
+        int x2 = readWord(rm.getIC());
+        rm.setIC(rm.getIC() + 1);
+        if (rm.getSI() == 1 && shrVm != this) {
+            rm.setPI((byte) 3);
+            return;
+        }
+        writeWord((SHARED_MEMORY_SEGMENT + x1) * PAGE_SIZE + x2, POP());
+        rm.setTI(rm.getTI() + 1);
+
+    }
+
+    public void RB() {
+        int x1 = readWord(rm.getIC());
+        rm.setIC(rm.getIC() + 1);
+        int x2 = readWord(rm.getIC());
+        rm.setIC(rm.getIC() + 1);
+        if (rm.getSI() == 1 && shrVm != this) {
+            rm.setPI((byte) 3);
+            return;
+        }
+        PUSH(readWord((SHARED_MEMORY_SEGMENT + x1) * PAGE_SIZE + x2));
+        rm.setTI(rm.getTI() + 1);
+    }
 }
