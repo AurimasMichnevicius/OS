@@ -10,13 +10,18 @@ package manooperacinesystema;
  * @author User
  */
 public class Ekranas {
-    public void spausdinti(int array[])
+
+    public void PRTN(int print)
     {
-        for(int i =0 ; i < array.length ; i ++)
-        {
-            System.out.println(array.length);
-            System.out.print((char) array[i]+ " ");
-        }
+        System.out.print(print+"||");
     }
+        public void PRTN(char print)
+    {
+        System.out.print(print+ "||");
+    }
+        public void PTR(int array[])
+        {
+            
+        }
     
 }

@@ -42,11 +42,11 @@ public class RealMachine {
     private byte C; // loginis triggeris
     public static final int PAGE_SIZE = 256; // puslapio dydis  
     public static final int PAGE_COUNT = 256; // puslapyje yra zodziu   
-    public static final int MAX_VM_COUNT = 4; // maksimalus vm skaiciuos jei nepavyks darysiu su situ. taciau dabar nereikia 
+    public static final int MAX_VM_COUNT = 1; // maksimalus vm skaiciuos jei nepavyks darysiu su situ. taciau dabar nereikia 
     public static final int WORD_SIZE = 4; // zodzio dydis   
-    private Ekranas printout;
+    private Ekranas printout = new Ekranas();
     public static final int ENTRIES_PER_PAGE_TABLE = PAGE_COUNT;
-    private static final int MEMORY_SIZE = PAGE_COUNT * PAGE_SIZE;
+    private static final int MEMORY_SIZE = PAGE_COUNT * PAGE_SIZE*4;
     private int[] MEMORY = new int[MEMORY_SIZE]; /// vidine atmintis
     // daryti is char arba stringo po 4
     // 
@@ -76,41 +76,67 @@ public class RealMachine {
         Random r = new Random(0);
         int range = 256;
         int block = r.nextInt(range);
+        while(allocatedMemory.get(block) != null)
+            block = r.nextInt(range);
+        
+        setPTR(block); // set page table pointer
+
+        // initialize Page Table Entries to point at different RAM pages (PTE 0 points at page 0 at RAM, PTE 1 at page 1, ..., PTE 15 - at 15)
+        for(int i = 0; i < RealMachine.ENTRIES_PER_PAGE_TABLE; i++){
+            block = r.nextInt(range);
+            while(allocatedMemory.get(block) != null)
+                block = r.nextInt(range);
+            if(i >= 0xFE00 && setSHR)
+            {
+                setPTE(i, MEMORY[getSHR() * PAGE_SIZE + (i - 0xFE00)]);
+                continue;
+            }
+            allocatedMemory.put(block, i);
+            setPTE(i, block);   // virtual memory at page i create page table entry in real memory
+            if(!setSHR && i == 0xFE00)
+            {
+                setSHR(block);
+                setSHR = true;
+            }
+        }
+        
+        /*
+        
+        Random r = new Random(0);
+        int range = 256;
+        int block = r.nextInt(range);
         while (allocatedMemory.get(block) != null) {
             block = r.nextInt(range);
         }
         setPTR(block);
         for (int i = 0; i < 256; i++) {
             block = r.nextInt(range);
-            if (i >= 0xC1 && setSHR) {
-                setPTE(i, MEMORY[getSHR() * PAGE_SIZE + (i - 0xC1)]);
+            if (i >= 0xFE && setSHR) {
+                setPTE(i, MEMORY[getSHR() * PAGE_SIZE + (i - 0xFE)]);
                 continue;
             }
             allocatedMemory.put(block, i);
-            setPTE(i,block);
-            if(!setSHR && i == 0xC1)
-            {
+            setPTE(i, block);
+            if (!setSHR && i == 0xFE) {
                 setSHR(block);
                 setSHR = true;
             }
-        }
+        }*/
     }
 
-
-
-    public int returnStackPointer()
-    {
+    public int returnStackPointer() {
         return virtualToRealAddress(SPSTART, SP);
     }
-        @Override
+
+    @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("--------RM--------\n");
-        builder.append("MODE: " + this.getMode()+ "\t\tPTR: " + getPTR() + "\tIC: " + getIC() + "\n");
-        builder.append("PI: " + getPI() + "\t\tSI: " + getSI() + "\t\tSP: " + this.getSP()+ "\n");
+        builder.append("MODE: " + this.getMode() + "\t\tPTR: " + getPTR() + "\tIC: " + getIC() + "\n");
+        builder.append("PI: " + getPI() + "\t\tSI: " + getSI() + "\t\tSP: " + this.getSP() + "\n");
         builder.append("IOT: " + getIOL() + "\t\tTI: " + getTI() + "\t\tCH1: " + getCH1() + "\n");
         builder.append("CH2: " + getCH3() + "\t\tCH3: " + getCH3() + "\t\tSHR: " + getSHR() + "\n");
-        builder.append("SW: " + this.getSW()+ "\t\t SF:" + this.getSF()+ "\n");
+        builder.append("SW: " + this.getSW() + "\t\t SF:" + this.getSF() + "\n");
         builder.append("------------------\n");
         return builder.toString();
     }
@@ -159,7 +185,7 @@ public class RealMachine {
                     break;
             }
         }
-        if (this.IOL == 0) {
+        if (this.IOL != 0) {
             switch (this.IOL) {
 
                 case 1:
@@ -167,18 +193,33 @@ public class RealMachine {
                     break;
 
                 case 2:
-                    // printinmame X zodi
+                    int x = this.getWord(this.getIC(), 0);
+                    this.setIC(this.getIC() + 1);
+                    for (int i = 0; i < 256; i++) {
+                        printout.PRTN(MEMORY[virtualToRealAddress(x, 0) + i]);
+                    }
+                    RealMachine.setCH3((byte) 0);
+                    this.setIOL(0);
+                    this.setMode((byte) 0);
+                    // printinmame  X*256 zodiUS
                     break;
 
                 case 3:
-                    // steko virsuneje esancius skaiciuos spausdinam kaip numerius
+                    printout.PRTN(this.getWord(0x90, SP));
+                    RealMachine.setCH3((byte) 0);
+                    this.setIOL(0);
+                    this.setMode((byte) 0);
+                    // steko virsuneje esanti zodi printiname kaip numerius
                     break;
 
                 case 4:
-                    // steko virsuneje esancius skaiciuos spausdinam kaip simbolius
+                    printout.PRTN((char) this.getWord(0x90, SP));
+                    RealMachine.setCH3((byte) 0);
+                    this.setIOL(0);
+                    this.setMode((byte) 0);
                     break;
-                    
-                    /*
+
+                /*
                 case 3:
               
                     for(int i = 0 ; i < SP; i++)
@@ -200,9 +241,6 @@ public class RealMachine {
                     printout.spausdinti(arr);
                     break;
                 default:*/
-                    
-                    
-                    
                 default:
                     break;
             }
@@ -221,6 +259,7 @@ public class RealMachine {
 
     public void setWord(int page, int offset, int value) {
         MEMORY[virtualToRealAddress(page, offset)] = value;
+      //  System.out.println(virtualToRealAddress(page, offset));
     }
 
     public int getWord(int page, int offset) {
@@ -274,18 +313,20 @@ public class RealMachine {
             System.out.print("\n");
         }
     }
-        public void writeWord(int address, int word)
-    {
-        if(address < 0 || address >= MEMORY_SIZE)
+
+    public void writeWord(int address, int word) {
+        if (address < 0 || address >= MEMORY_SIZE) {
             return;
+        }
         int page = address / PAGE_SIZE;
         int offset = address - page * PAGE_SIZE;
         writeWord(page, offset, word);
     }
-        public void writeWord(int page, int offset, int word)
-    {
-        if(page < 0 || page >= PAGE_COUNT || offset < 0 || offset >= PAGE_SIZE)
+
+    public void writeWord(int page, int offset, int word) {
+        if (page < 0 || page >= PAGE_COUNT || offset < 0 || offset >= PAGE_SIZE) {
             return;
+        }
         setWord(page, offset, word);
     }
 
@@ -306,7 +347,7 @@ public class RealMachine {
             return;
         }
         int table = getPageTableAddress();
-        MEMORY[table + pageInVM] = pageInRAM;
+        MEMORY[table + pageInVM] = pageInRAM; // i think this is a problemb iwth my puslapiavimas 
     }
 
     public void setPTR(int ptr) {
@@ -430,8 +471,8 @@ public class RealMachine {
     }
 
 }
-    /* ---------Virtual Memory model-------*/
-    /*
+/* ---------Virtual Memory model-------*/
+ /*
        0-0F 1F  2F  3F  4F  5F  6F 7F 8F 9F AF BF CF DF EF FF|
        -----------Data segment---------------
        00              0-256                 |
@@ -456,4 +497,4 @@ public class RealMachine {
        FE            224-240                 |
        FF            240-256                 |
        --------------------------------------
-     */
+ */

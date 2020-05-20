@@ -25,14 +25,16 @@ public enum Instruction {
     JL(0x0E, 2), // veikia
     PRTS(0x09), // Veikia
     PRTN(0x0A), // Veikia
-    WRT(0x20, 1),// veikia
-    READ(0x21, 0), // veikia
     LC(0x22, 0),// veikia
     UC(0x23, 0),// veikia
-    WB(0x24, 2), // neveikia
-    RB(0x25, 2), // neveikia
+    WB(0x24, 2), // veikia
+    RB(0x25, 2), // veikia
+    
+    
+    //WRT(0x20, 1),// neveikia // tokio net nera,. pas mane PTR
+    READ(0x21, 0), // neveikia
 
-    PRT(0x12, 2); //neveikia
+    PRT(0x12, 1); //neveikia
     private int opcode;
     private int args;
     private Instruction(int opcode)

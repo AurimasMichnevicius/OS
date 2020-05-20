@@ -21,7 +21,9 @@ public class ManoOperacineSystema { // main class
         VirtualMachine vm = new VirtualMachine(rm);
         rm.createVirtualMemory();
         vm.loadProgram("program.txt");
+        //vm.fuckupRmMemory();
         vm.runProgram();
+        //rm.printRealMemory(0, 255);
         //vm.printSTACK();
         System.out.println(rm.toString());    
 }

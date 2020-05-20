@@ -23,7 +23,7 @@ public class VirtualMachine {
     private static final int MEMORY_SIZE = PAGE_SIZE * PAGE_COUNT;
     private static final int DATA_SEGMENT_START = 0;
     private static final int CODE_SEGMENT_START = PAGE_SIZE * 4;
-    public static final int SHARED_MEMORY_SEGMENT = 0xF0;
+    public static final int SHARED_MEMORY_SEGMENT = 0xFE;
     public static final int stack_start = 0x90;
     public static int printerPage;
     private int SP = 0;
@@ -92,6 +92,7 @@ public class VirtualMachine {
         try {
             while (true) {
                 executeInstruction();
+                 rm.printVirtualMemory(0, 255);
                 rm.test();
             }
         } catch (IOException ioe) {
@@ -118,6 +119,7 @@ public class VirtualMachine {
         if (page < 0 || page >= PAGE_COUNT || offset < 0 || offset >= PAGE_SIZE) {
             return;
         }
+        System.out.println(page+ " off: "+ offset+ " word : " + word);
         rm.setWord(page, offset, word);
     }
 
@@ -144,15 +146,15 @@ public class VirtualMachine {
             System.out.println(input);
 
             if (input.equals("help")) {
-                System.out.println("use <rm >to print Real Memory: usage rm <start> <end>"); // reiks pakeisti 
+                System.out.println("naudoti <rm >kad pamatytumete tikra atminti: rm <start> <end>"); // reiks pakeisti 
                 System.out.println("\t\t- rm 0 5");
-                System.out.println("use <vm> to print Virtual Memory: usage vm <start> <end>");
+                System.out.println("naudoti <vm> kad pamatytuumete Virtualia  atminti:vm <start> <end>");
                 System.out.println("\t\t- vm 0 5");
-                System.out.println("use <print S> to see STack  state");
+                System.out.println("naudoti <print S> kad pamatytumete stecka");
                 System.out.println("\n");
-                System.out.println("use <print vm> to see virtual machine state");
+                System.out.println("naudoti <print vm> kad pamatytumete virtualia masina");
                 System.out.println("\n");
-                System.out.println("use <pt> to see page table");
+                System.out.println("naudoti <pt> jog pamatytumete PTR");
                 System.out.println("\n");
                 return;
             } else if (input.equals("print rm")) {
@@ -197,7 +199,7 @@ public class VirtualMachine {
         } else if (op == Instruction.PUSH.getOpcode()) {
             PUSH();
         } else if (op == Instruction.POP.getOpcode()) {
-            System.out.println("STACK POPED: "+POP());
+           // System.out.println("STACK POPED: "+POP());
         } else if (op == Instruction.JM.getOpcode()) {
             JM();
         } else if (op == Instruction.JE.getOpcode()) {
@@ -207,8 +209,7 @@ public class VirtualMachine {
         
         } else if (op == Instruction.JL.getOpcode()) {
             JL();
-        }else if (op == Instruction.WRT.getOpcode()) {
-            WRT();
+        
         } else if (op == Instruction.READ.getOpcode()) {
             READ();
         } else if (op == Instruction.LC.getOpcode()) {
@@ -225,6 +226,8 @@ public class VirtualMachine {
             RB();
         } else if (op == Instruction.HALT.getOpcode()) {
             HALT();
+        }else if (op == Instruction.PRT.getOpcode()) {
+            PRT();
         } else {
             throw new Exception("Unrecognized instruction's opcode: " + op);
         }
@@ -236,6 +239,16 @@ public class VirtualMachine {
     public void printSTACK() {
         for (int i = 0; i < SP; i++) {
             System.out.print("SP :" + i + "  VALUE:" + this.readWord(0x90, i + 1) + "||");
+        }
+    }
+    public void fuckupRmMemory()
+    {
+        for(int i = 0; i < 256; i++)
+        {
+            for(int j = 0 ; j <256; j++)
+            {
+                rm.setWord(i, j, -1);
+            }
         }
     }
 
@@ -282,17 +295,23 @@ public class VirtualMachine {
 
     public void PUSH(int i) {
         //System.out.println(i+ " SP : "+ SP+1 );
+        
         SP++;
-        writeWord(0x90, SP, i);
+        //writeWord(0x90, SP, i);
         rm.setTI(rm.getTI() + 1);
+        
+        
 
     }
 
     public void PUSH() {
         SP++;
+       rm.printRealMemory(0, 400);
         writeWord(0x90, SP, readWord(rm.getIC()));
         rm.setIC(rm.getIC() + 1);
         rm.setTI(rm.getTI() + 1);
+        System.out.println(" *-----------------------------------------------------------------------------");
+      //  rm.printRealMemory(0, 255);
 
     }
 
@@ -352,9 +371,6 @@ public class VirtualMachine {
 
     }
 
-    public void WRT() { // dar nepadarytas 
-
-    }
 
     public void READ() { // nepadaryti dar
 
@@ -380,21 +396,37 @@ public class VirtualMachine {
     }
 
     public void PRTS() {// reikia pakeist kad per supervizorine printintu
-        System.out.println((char) POP());
+       // System.out.println((char) POP());
+        rm.setIOL(4);
+        rm.setMode((byte) 1);
+        RealMachine.setCH3((byte)1);
+        rm.setTI(rm.getTI() + 3);
+        rm.setSP(SP);
+        
     }
 
     public void PRTN() {// reikia pakeist kad per sueprvizorine printintu
-        System.out.println(POP());
+       // System.out.println(POP());
+        rm.setIOL(3);
+        rm.setMode((byte) 1);
+        RealMachine.setCH3((byte)1);
+        rm.setTI(rm.getTI() + 3);
+        rm.setSP(SP);
     }
 
     public void PRT() {// reikia padaryt kad per supervizorine printtu.
-        int x1 = readWord(rm.getIC());
+       /* int x1 = readWord(rm.getIC());
         rm.setIC(rm.getIC() + 1);
         for(int i = 0 ; i <256 ; i ++)
         {
             System.out.print(readWord(x1*256 + i)+ " ");
-        }
-
+        }*/
+        rm.setIOL(2);
+        rm.setMode((byte) 1);
+        RealMachine.setCH3((byte)1);
+        rm.setTI(rm.getTI() + 3);
+        rm.setSP(SP);
+         
     }
 
     public void WB() {
