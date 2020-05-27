@@ -11,7 +11,7 @@ package manooperacinesystema;
  */
 
 public class ManoOperacineSystema { // main class 
- public static final boolean DEBUG = false;
+ public static final boolean DEBUG = true;
     /**
      * @param args the command line arguments
      */
@@ -25,6 +25,6 @@ public class ManoOperacineSystema { // main class
         vm.runProgram();
         //rm.printRealMemory(0, 255);
         //vm.printSTACK();
-        System.out.println(rm.toString());    
+        //System.out.println(rm.toString());    
 }
 }

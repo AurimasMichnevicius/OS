@@ -1,46 +1,45 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package manooperacinesystema;
 
-import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.BufferedReader;
 import java.io.IOException;
 
-/**
- *
- * @author User
- */
 public class Keyboard{
 
     public static int sector = 0;
-
-    public static void readFromFlashToHDD(String sourceFile) {
+    public static int page = 64 ;
+    public static void readFromKeyboardToHDD(String sourceFile) {
         try{
             BufferedReader br = new BufferedReader(new FileReader(sourceFile));
             StringBuilder line = new StringBuilder();
             int c;
-
-            while ((c = br.read()) != -1) {
-                if (line.length() == 256) {
-                    HDD.write(line.toString().toCharArray(), sector);
-                    sector++;
-                    line = new StringBuilder();
-                }
-                // 
-                if (c != 10 && c != 13) {
-                    line.append((char) c);
-                }
+            String builder = "";
+            
+            int array[]= new int[256];
+            int i = 0;
+            while (((c = br.read()) != -1) && (i<256)) {
+                
+            
+            if (Character.getNumericValue((char)c) == -1) {
+               array[i] = Integer.parseInt(builder);
+             i++;
+             builder = "";
+            }else
+            {
+                builder = builder+(char)c;
             }
-            if (!line.toString().equals("")) {
-                HDD.write(line.toString().toCharArray(), sector);
-                sector++;
             }
+//                    for(int j = 0;  j< 256; j++)
+//        {
+//            System.out.print(array[j]+ " ");
+//            
+//        }
+//                    
+//        System.out.println();
+            HDD.write(page, array);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Read from FLASH to HDD.");
+        System.out.println("Read from KEYOBNOARD to HDD.");
     }
 }

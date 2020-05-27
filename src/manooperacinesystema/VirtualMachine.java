@@ -39,11 +39,13 @@ public class VirtualMachine {
     }
 
     public void loadProgram(String programName) {
-        Scanner scanner = new Scanner(System.in);
+      //  Scanner scanner = new Scanner(System.in);
+          try(BufferedReader br = new BufferedReader(new FileReader(programName)))
+        {
         String state = "START";
         String currentLine = "";
         int offset = 0;
-        while ((currentLine = scanner.nextLine()) != null) {
+        while ((currentLine = currentLine = br.readLine()) != null) {
             String[] split = currentLine.split(" ");
 
             currentLine = split[0];
@@ -85,6 +87,10 @@ public class VirtualMachine {
             }
 
         }
+        } catch(IOException ioe)
+        {
+            ioe.printStackTrace();
+        }
     }
 
     public void runProgram() throws Exception {
@@ -92,7 +98,7 @@ public class VirtualMachine {
         try {
             while (true) {
                 executeInstruction();
-                 rm.printVirtualMemory(0, 255);
+                 //rm.printVirtualMemory(0, 255);
                 rm.test();
             }
         } catch (IOException ioe) {
@@ -119,7 +125,7 @@ public class VirtualMachine {
         if (page < 0 || page >= PAGE_COUNT || offset < 0 || offset >= PAGE_SIZE) {
             return;
         }
-        System.out.println(page+ " off: "+ offset+ " word : " + word);
+        //System.out.println(page+ " off: "+ offset+ " word : " + word);
         rm.setWord(page, offset, word);
     }
 
@@ -163,7 +169,12 @@ public class VirtualMachine {
             } else if (input.equals("print S")) {
                 printSTACK();
                 return;
-            } else if (input.equals("pt")) {
+            }
+                        else if(input.equals("print vm"))
+            {
+                printRegisters();
+                return;
+            }else if (input.equals("pt")) {
                 rm.printPageTable();
                 return;
             } else if (input.contains("vm") || input.contains("rm")) {
@@ -228,7 +239,10 @@ public class VirtualMachine {
             HALT();
         }else if (op == Instruction.PRT.getOpcode()) {
             PRT();
-        } else {
+        }else if (op == Instruction.SWAP.getOpcode()) {
+            SWAP();
+        }
+        else {
             throw new Exception("Unrecognized instruction's opcode: " + op);
         }
         if (ManoOperacineSystema.DEBUG) {
@@ -240,6 +254,7 @@ public class VirtualMachine {
         for (int i = 0; i < SP; i++) {
             System.out.print("SP :" + i + "  VALUE:" + this.readWord(0x90, i + 1) + "||");
         }
+        System.out.println();
     }
     public void fuckupRmMemory()
     {
@@ -251,7 +266,14 @@ public class VirtualMachine {
             }
         }
     }
-
+    public void printRegisters()
+    {
+        System.out.println("-----------VM-------------");
+        System.out.print("STACK: "  );
+        printSTACK();
+        System.out.println("IC: " + rm.getIC()+ "\t CMP: " + rm.getSF());
+        System.out.println("--------------------------");
+    }
     public void ADD() {
         int i = (POP() + POP());
         // System.out.println(i);
@@ -263,7 +285,7 @@ public class VirtualMachine {
 
         int kuri_minusuojame = POP();
         int minusuojamas = POP();
-        System.out.println((minusuojamas - kuri_minusuojame));
+        //System.out.println((minusuojamas - kuri_minusuojame));
         PUSH((minusuojamas - kuri_minusuojame));
         rm.setTI(rm.getTI() + 1);
     }  // WORKS // REIKIA PATIKRINTI AR NEPERSOKO PER TA RIBA
@@ -306,11 +328,11 @@ public class VirtualMachine {
 
     public void PUSH() {
         SP++;
-       rm.printRealMemory(0, 400);
+      // rm.printRealMemory(0, 400);
         writeWord(0x90, SP, readWord(rm.getIC()));
         rm.setIC(rm.getIC() + 1);
         rm.setTI(rm.getTI() + 1);
-        System.out.println(" *-----------------------------------------------------------------------------");
+      //  System.out.println(" *-----------------------------------------------------------------------------");
       //  rm.printRealMemory(0, 255);
 
     }
@@ -372,8 +394,22 @@ public class VirtualMachine {
     }
 
 
-    public void READ() { // nepadaryti dar
-
+    public void READ() { // kaip veiks bus is klaviaturos nureadins mano inputa, 
+        //tada ji ikels i HDD tada swappinsiu komandu ivykdyma, persetinsiu setIC is naujo ir pabaigsiu vykdyti HDD komandas.
+        rm.setCH1((byte)1);
+        rm.setMode((byte)1);
+        rm.setIOL(1);
+        rm.setTI(rm.getTI()+3);
+        
+    }
+    
+    public void SWAP() { // kaip veiks bus is klaviaturos nureadins mano inputa, 
+        //tada ji ikels i HDD tada swappinsiu komandu ivykdyma, persetinsiu setIC is naujo ir pabaigsiu vykdyti HDD komandas.
+        rm.setCH1((byte)2);
+        rm.setMode((byte)1);
+        rm.setSW(1);
+        rm.setTI(rm.getTI()+3);
+        
     }
 
     public void LC() {
@@ -456,3 +492,7 @@ public class VirtualMachine {
         rm.setTI(rm.getTI() + 1);
     }
 }
+/*
+
+00 
+*/

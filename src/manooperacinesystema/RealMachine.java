@@ -19,7 +19,7 @@ public class RealMachine {
     private int IC;// virtualios masines atmintes lasteliu skaitiklis
     private byte PI;// atminties pazeidimui nustatyti
     private byte SI;// uzrakinimo atminties lasteles X
-    private int SF = -1;
+    private int SF = 1;
 
     public int getSF() {
         return SF;
@@ -37,7 +37,7 @@ public class RealMachine {
     private int SHR = 0;
     private boolean setSHR = false;
     private static byte CH1; // klaiviatura 
-    private static byte CH2;// hdd
+    private static byte CH2;// hdd // kietasis diskas
     private static byte CH3;// ekranas
     private byte C; // loginis triggeris
     public static final int PAGE_SIZE = 256; // puslapio dydis  
@@ -45,6 +45,7 @@ public class RealMachine {
     public static final int MAX_VM_COUNT = 1; // maksimalus vm skaiciuos jei nepavyks darysiu su situ. taciau dabar nereikia 
     public static final int WORD_SIZE = 4; // zodzio dydis   
     private Ekranas printout = new Ekranas();
+   
     public static final int ENTRIES_PER_PAGE_TABLE = PAGE_COUNT;
     private static final int MEMORY_SIZE = PAGE_COUNT * PAGE_SIZE*4;
     private int[] MEMORY = new int[MEMORY_SIZE]; /// vidine atmintis
@@ -53,7 +54,7 @@ public class RealMachine {
 
     private HashMap<Integer, Integer> allocatedMemory = new HashMap<>();
     // Physiscal įrenginiai
-    public static HDD hdd;
+    public static HDD hdd = new HDD();
     public static Keyboard keyboard;
     // public static Printer printer;
 
@@ -189,7 +190,11 @@ public class RealMachine {
             switch (this.IOL) {
 
                 case 1:
-                    // READ
+                    Keyboard.readFromKeyboardToHDD("keyboard.txt");
+                    this.setIC(this.getIC()+1);// sustatyti i vietas registrus
+                    this.setIOL(0);
+                    this.setCH1((byte)0);
+                    this.setCH2((byte)0);
                     break;
 
                 case 2:
@@ -205,7 +210,7 @@ public class RealMachine {
                     break;
 
                 case 3:
-                    printout.PRTN(this.getWord(0x90, SP));
+                    printout.PRTN(this.getWord(0x90, SP+1));
                     RealMachine.setCH3((byte) 0);
                     this.setIOL(0);
                     this.setMode((byte) 0);
@@ -213,24 +218,18 @@ public class RealMachine {
                     break;
 
                 case 4:
-                    printout.PRTN((char) this.getWord(0x90, SP));
+                    printout.PRTN((char) this.getWord(0x90, SP+1));
                     RealMachine.setCH3((byte) 0);
                     this.setIOL(0);
                     this.setMode((byte) 0);
                     break;
 
-                /*
-                case 3:
-              
-                    for(int i = 0 ; i < SP; i++)
-                    {
-                        arr[i] = this.getWord(SPSTART, SPSTART-SP+i);
-                       
-                    }
-                    printout.spausdinti(arr);
+               /*
+                case 5:
+
                     // steko virsuneje esancius skaiciuos spausdinam kaip numerius
                     break;
-
+ /*
                 case 4:
                  
                     for(int i = 0 ; i < SP; i ++)
@@ -247,12 +246,45 @@ public class RealMachine {
 
         }
         if (this.SW != 0) {
+
             if (this.SW == 1) {
                 // tada mes darome swappinga is MEMORY i HDD ir atgal is HDD I memory    
+                        // darome swapping'a custom
+                        int arr[] = new int[256];
+                         int page = this.getWord(this.getIC()/256, (this.getIC()%256));
+                        arr = HDD.read(page);
+                       //System.out.println(page * 256+ " " + page);
+                        HDD.write(page, getPage());
+                        RealMachine.setCH2((byte)0);
+                        this.setSW(0);
+                        for (int i =0; i<256; i ++)
+                        {
+//                            System.out.println( this.getWord(page, i) + " i :" +i +   " to "+ arr[i]);
+                            this.setWord(page, i, arr[i]);
+//                            System.out.println( this.getWord(page, i)+" i :" +i + " to "+ arr[i]);
+                        }
+                        this.setIC(page *256);
             }
         }
     }
-
+public int[] getPage()
+{
+    int toReturn[] = new int[256];
+    int page = this.getWord(this.getIC()/256, (this.getIC()%256));
+    
+    
+    for(int i = 0 ; i <256; i++)
+    {
+        toReturn[i] = MEMORY[virtualToRealAddress(page, i)];
+    }
+//                for(int i = 0;  i < 256; i++)
+//        {
+//            System.out.print(toReturn[i]+ "  " + page +": page ");
+//            
+//        }
+//        System.out.println();
+    return toReturn;
+}
     private void Swapping() {
         //TODO: realizuoti swpapinga 
     }
@@ -301,7 +333,7 @@ public class RealMachine {
     }
 
     public void printRealMemory(int start, int end) {
-        if (start < 0 || start > end || end < 0 || end >= MEMORY_SIZE / PAGE_SIZE) {
+        if (start < 0 || start > end || end < 0 || end >= 256) {
             System.out.println("Wrong start and end page interval: min: 0 max: " + (MEMORY_SIZE / PAGE_SIZE - 1) + "\n");
             return;
         }
@@ -490,11 +522,9 @@ public class RealMachine {
        90         ----                |
        A0
        BF ----               
-       -----------Page table ----------------
-       C0            192-208                 |
+        
+                  --------             |
        -----------Shared memory--------------
-       C1            208-224                 |
-       FE            224-240                 |
-       FF            240-256                 |
+       FE            ----0xFFFF           |
        --------------------------------------
  */

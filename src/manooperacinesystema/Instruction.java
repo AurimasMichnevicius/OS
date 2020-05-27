@@ -29,10 +29,9 @@ public enum Instruction {
     UC(0x23, 0),// veikia
     WB(0x24, 2), // veikia
     RB(0x25, 2), // veikia
+    SWAP(0x26, 1), // veikia
     
-    
-    //WRT(0x20, 1),// neveikia // tokio net nera,. pas mane PTR
-    READ(0x21, 0), // neveikia
+    READ(0x21, 1), // veikia kaip ir.
 
     PRT(0x12, 1); //neveikia
     private int opcode;

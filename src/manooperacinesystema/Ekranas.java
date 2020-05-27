@@ -13,11 +13,11 @@ public class Ekranas {
 
     public void PRTN(int print)
     {
-        System.out.print(print+"||");
+        System.out.println(print+"");
     }
         public void PRTN(char print)
     {
-        System.out.print(print+ "||");
+        System.out.println(print+ "");
     }
         public void PTR(int array[])
         {
